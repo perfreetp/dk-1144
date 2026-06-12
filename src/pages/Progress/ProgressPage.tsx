@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Award, Target, Clock, TrendingUp, BookOpen, Star, PlayCircle, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useLearningStore } from '../../stores/learningStore';
@@ -56,9 +56,10 @@ const mockQuizzes: QuizData[] = [
 
 export default function ProgressPage() {
   const { user } = useAuthStore();
-  const { records, quizResults, progressStats, fetchRecords, fetchQuizResults, fetchProgressStats, markAsCompleted, markAsInProgress, addQuizResult } = useLearningStore();
+  const { records, quizResults, progressStats, fetchRecords, fetchQuizResults, fetchProgressStats, markAsCompleted, addQuizResult } = useLearningStore();
   const { entries, fetchEntries, getEntryById } = useKnowledgeStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null);
@@ -75,7 +76,7 @@ export default function ProgressPage() {
       fetchQuizResults(user.id);
       fetchProgressStats(user.id);
     }
-  }, [user, fetchEntries, fetchRecords, fetchQuizResults, fetchProgressStats]);
+  }, [user, fetchEntries, fetchRecords, fetchQuizResults, fetchProgressStats, location.key]);
 
   const completedCount = records.filter(r => r.status === 'completed').length;
   const inProgressCount = records.filter(r => r.status === 'in_progress').length;
@@ -91,7 +92,6 @@ export default function ProgressPage() {
   ];
 
   const handleStartLearning = (entryId: string) => {
-    markAsInProgress(entryId);
     navigate(`/entry/${entryId}`);
   };
 

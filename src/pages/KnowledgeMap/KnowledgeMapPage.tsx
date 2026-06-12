@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { Search, FileText, Users, Monitor, Building, Calculator, Coffee, Map } from 'lucide-react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { Search, FileText, Users, Monitor, Building, Calculator, Coffee, Map, ArrowLeft } from 'lucide-react';
 import { useKnowledgeStore } from '../../stores/knowledgeStore';
 import { getCategoryById } from '../../data/mockCategories';
-import { mockPaths } from '../../data/mockPaths';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import EntryCard from '../../components/domain/EntryCard';
-import PathCard from '../../components/domain/PathCard';
 import Button from '../../components/common/Button';
-import { ArrowLeft } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   FileText,
@@ -65,7 +62,7 @@ export default function KnowledgeMapPage() {
   };
 
   const selectedCategoryData = selectedCategory ? getCategoryById(selectedCategory) : null;
-  const selectedPathData = selectedPath ? mockPaths.find(p => p.id === selectedPath) : null;
+  const selectedPathData = selectedPath ? paths.find(p => p.id === selectedPath) : null;
 
   const pathEntries = selectedPath
     ? entries.filter(e => selectedPathData?.entryIds.includes(e.id))
@@ -249,12 +246,12 @@ export default function KnowledgeMapPage() {
                             </div>
                           </div>
                         </div>
-                        <a
-                          href={`/entry/${entry.id}`}
+                        <Link
+                          to={`/entry/${entry.id}`}
                           className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors whitespace-nowrap"
                         >
                           开始学习
-                        </a>
+                        </Link>
                       </div>
                     </Card>
                   ))}

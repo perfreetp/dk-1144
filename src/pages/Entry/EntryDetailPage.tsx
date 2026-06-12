@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Eye, Heart, Share2, Bookmark, History, PlayCircle } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Clock, User, Eye, Heart, Share2, Bookmark, History, PlayCircle, CheckCircle } from 'lucide-react';
 import { useKnowledgeStore } from '../../stores/knowledgeStore';
 import { useLearningStore } from '../../stores/learningStore';
 import { getEntryById } from '../../data/mockEntries';
@@ -12,9 +12,11 @@ import EntryCard from '../../components/domain/EntryCard';
 
 export default function EntryDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { currentEntry, fetchEntryById } = useKnowledgeStore();
-  const { records, markAsInProgress } = useLearningStore();
+  const { records, markAsInProgress, markAsCompleted } = useLearningStore();
   const [isLearning, setIsLearning] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -25,8 +27,12 @@ export default function EntryDetailPage() {
   useEffect(() => {
     if (id) {
       const record = records.find(r => r.entryId === id);
-      if (record && record.status === 'in_progress') {
-        setIsLearning(true);
+      if (record) {
+        if (record.status === 'in_progress') {
+          setIsLearning(true);
+        } else if (record.status === 'completed') {
+          setIsCompleted(true);
+        }
       }
     }
   }, [id, records]);
@@ -37,6 +43,15 @@ export default function EntryDetailPage() {
     if (id) {
       markAsInProgress(id);
       setIsLearning(true);
+    }
+  };
+
+  const handleCompleteLearning = () => {
+    if (id) {
+      markAsCompleted(id);
+      setIsCompleted(true);
+      setIsLearning(false);
+      navigate('/progress');
     }
   };
 
@@ -182,10 +197,27 @@ export default function EntryDetailPage() {
               </div>
 
               <div className="pt-4 border-t border-slate-100">
-                {isLearning ? (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg text-indigo-600">
-                    <PlayCircle className="w-5 h-5" />
-                    <span className="font-medium">学习中...</span>
+                {isCompleted ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg text-green-600">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">已完成学习</span>
+                    </div>
+                    <Link to="/progress">
+                      <Button variant="secondary" className="w-full" leftIcon={<PlayCircle className="w-4 h-4" />}>
+                        参加小测
+                      </Button>
+                    </Link>
+                  </div>
+                ) : isLearning ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg text-indigo-600">
+                      <PlayCircle className="w-5 h-5" />
+                      <span className="font-medium">学习中...</span>
+                    </div>
+                    <Button onClick={handleCompleteLearning} className="w-full" leftIcon={<CheckCircle className="w-4 h-4" />}>
+                      完成学习
+                    </Button>
                   </div>
                 ) : (
                   <Button className="w-full" onClick={handleStartLearning} leftIcon={<PlayCircle className="w-4 h-4" />}>

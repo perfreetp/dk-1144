@@ -100,8 +100,12 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
 
   fetchEntryById: (id: string) => {
     set({ isLoading: true });
-    const { entries } = get();
-    const entry = entries.find(e => e.id === id);
+    const storedEntries = storage.get<Entry[]>(STORAGE_KEYS.ENTRIES, []);
+    const allEntries = storedEntries.length > 0 ? storedEntries : mockEntries;
+    const entry = allEntries.find(e => e.id === id);
+    if (storedEntries.length === 0 && entry) {
+      storage.set(STORAGE_KEYS.ENTRIES, mockEntries);
+    }
     set({ currentEntry: entry || null, isLoading: false });
   },
 
@@ -238,8 +242,9 @@ export const useKnowledgeStore = create<KnowledgeState>((set, get) => ({
   },
 
   getEntryById: (id: string) => {
-    const { entries } = get();
-    return entries.find(e => e.id === id);
+    const storedEntries = storage.get<Entry[]>(STORAGE_KEYS.ENTRIES, []);
+    const allEntries = storedEntries.length > 0 ? storedEntries : mockEntries;
+    return allEntries.find(e => e.id === id);
   },
 
   getPathById: (id: string) => {
