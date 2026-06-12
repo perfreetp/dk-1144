@@ -10,7 +10,15 @@ import Button from '../../components/common/Button';
 export default function QuestionDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { currentQuestion, currentAnswers, fetchQuestionById, adoptAnswer, addAnswer } = useKnowledgeStore();
+  const { 
+    currentQuestion, 
+    currentAnswers, 
+    fetchQuestionById, 
+    adoptAnswer, 
+    addAnswer,
+    addEntry,
+    answers,
+  } = useKnowledgeStore();
   const { user } = useAuthStore();
   const [answerContent, setAnswerContent] = useState('');
   const [showConvertModal, setShowConvertModal] = useState(false);
@@ -22,6 +30,12 @@ export default function QuestionDetailPage() {
     }
   }, [id, fetchQuestionById]);
 
+  useEffect(() => {
+    if (convertedEntryId) {
+      navigate(`/entry/${convertedEntryId}`);
+    }
+  }, [convertedEntryId, navigate]);
+
   const handleAdopt = (answerId: string) => {
     if (currentQuestion && user?.id === currentQuestion.authorId) {
       adoptAnswer(currentQuestion.id, answerId);
@@ -30,7 +44,7 @@ export default function QuestionDetailPage() {
 
   const handleSubmitAnswer = () => {
     if (answerContent.trim() && currentQuestion && user) {
-      addAnswer(currentQuestion.id, `<p>${answerContent}</p>`, user.name);
+      addAnswer(currentQuestion.id, `<p>${answerContent}</p>`, user.name, user.id, user.avatar);
       setAnswerContent('');
       if (id) {
         fetchQuestionById(id);
@@ -39,7 +53,7 @@ export default function QuestionDetailPage() {
   };
 
   const handleConvertToEntry = () => {
-    if (!currentQuestion || !currentAnswers.length) return;
+    if (!currentQuestion) return;
 
     const adoptedAnswer = currentAnswers.find(a => a.isAdopted);
     if (!adoptedAnswer) return;
@@ -48,14 +62,18 @@ export default function QuestionDetailPage() {
       <h2>问题背景</h2>
       <p>${currentQuestion.content.replace(/<[^>]*>/g, '')}</p>
 
-      <h2>解答</h2>
+      <h2>最佳答案</h2>
       ${adoptedAnswer.content}
 
-      <h2>相关标签</h2>
-      <p>${currentQuestion.tags.join('、')}</p>
+      <hr style="margin: 24px 0; border: none; border-top: 1px solid #e2e8f0;" />
 
-      <blockquote>
-        <p>📌 此词条由问答 "<a href="/qa/${currentQuestion.id}">${currentQuestion.title}</a>" 采纳后沉淀生成</p>
+      <blockquote style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-top: 24px;">
+        <p style="margin: 0; color: #64748b; font-size: 14px;">
+          📌 此词条由问答 "<a href="/qa/${currentQuestion.id}" style="color: #4f46e5;">${currentQuestion.title}</a>" 采纳后沉淀生成
+        </p>
+        <p style="margin: 8px 0 0; color: #64748b; font-size: 14px;">
+          回答者：${adoptedAnswer.authorName} | 采纳时间：${currentQuestion.updatedAt}
+        </p>
       </blockquote>
     `;
 
@@ -63,7 +81,7 @@ export default function QuestionDetailPage() {
       id: `entry-from-qa-${currentQuestion.id}`,
       title: currentQuestion.title,
       content: entryContent,
-      summary: `关于"${currentQuestion.title}"的详细解答`,
+      summary: `关于"${currentQuestion.title}"的详细解答，由最佳答案沉淀生成`,
       categoryId: currentQuestion.categoryId,
       responsibleId: adoptedAnswer.authorId,
       responsibleName: adoptedAnswer.authorName,
@@ -78,9 +96,7 @@ export default function QuestionDetailPage() {
       relatedQuestions: [currentQuestion.id],
     };
 
-    const knowledgeStore = useKnowledgeStore.getState();
-    knowledgeStore.entries.push(newEntry);
-
+    addEntry(newEntry);
     setConvertedEntryId(newEntry.id);
     setShowConvertModal(false);
   };
@@ -202,26 +218,6 @@ export default function QuestionDetailPage() {
           </div>
         </Card>
 
-        {convertedEntryId && (
-          <Card className="p-4 mb-6 bg-green-50 border-green-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-green-600" />
-                <span className="text-sm text-green-800">
-                  此问答已沉淀为词条
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/entry/${convertedEntryId}`)}
-              >
-                查看词条 →
-              </Button>
-            </div>
-          </Card>
-        )}
-
         <div className="mb-6">
           <h2 className="text-lg font-bold text-slate-900 mb-4">
             {currentAnswers.length} 个回答
@@ -241,14 +237,16 @@ export default function QuestionDetailPage() {
                       <Check className="w-5 h-5" />
                       已采纳为最佳答案
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      leftIcon={<FileText className="w-4 h-4" />}
-                      onClick={() => setShowConvertModal(true)}
-                    >
-                      沉淀为词条
-                    </Button>
+                    {currentQuestion.status === 'adopted' && !convertedEntryId && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        leftIcon={<FileText className="w-4 h-4" />}
+                        onClick={() => setShowConvertModal(true)}
+                      >
+                        沉淀为词条
+                      </Button>
+                    )}
                   </div>
                 )}
                 <div className="flex items-start gap-4">

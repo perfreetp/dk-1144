@@ -8,7 +8,7 @@ import Button from '../../components/common/Button';
 import QuestionCard from '../../components/domain/QuestionCard';
 
 export default function QnAListPage() {
-  const { questions, fetchQuestions, addQuestion } = useKnowledgeStore();
+  const { questions, fetchQuestions, fetchAnswers, addQuestion } = useKnowledgeStore();
   const { user } = useAuthStore();
   const [filter, setFilter] = useState<'all' | 'pending' | 'answered' | 'adopted'>('all');
   const [showForm, setShowForm] = useState(false);
@@ -20,7 +20,8 @@ export default function QnAListPage() {
 
   useEffect(() => {
     fetchQuestions();
-  }, [fetchQuestions]);
+    fetchAnswers();
+  }, [fetchQuestions, fetchAnswers]);
 
   const filteredQuestions = questions.filter(q => {
     if (filter === 'all') return true;
@@ -56,7 +57,6 @@ export default function QnAListPage() {
 
     setFormData({ title: '', content: '', tags: '' });
     setShowForm(false);
-    fetchQuestions();
   };
 
   return (

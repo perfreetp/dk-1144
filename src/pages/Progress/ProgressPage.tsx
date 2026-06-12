@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Award, Target, Clock, TrendingUp, BookOpen, Star, PlayCircle, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useLearningStore } from '../../stores/learningStore';
@@ -8,7 +9,6 @@ import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import { ProgressRing } from '../../components/common/Progress';
 import Progress from '../../components/common/Progress';
-import LearningItem from '../../components/domain/LearningItem';
 
 interface QuizQuestion {
   id: string;
@@ -56,8 +56,9 @@ const mockQuizzes: QuizData[] = [
 
 export default function ProgressPage() {
   const { user } = useAuthStore();
-  const { records, quizResults, progressStats, fetchRecords, fetchQuizResults, fetchProgressStats, markAsCompleted, markAsInProgress, updateProgress } = useLearningStore();
-  const { entries, fetchEntries } = useKnowledgeStore();
+  const { records, quizResults, progressStats, fetchRecords, fetchQuizResults, fetchProgressStats, markAsCompleted, markAsInProgress, addQuizResult } = useLearningStore();
+  const { entries, fetchEntries, getEntryById } = useKnowledgeStore();
+  const navigate = useNavigate();
 
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [currentQuiz, setCurrentQuiz] = useState<QuizData | null>(null);
@@ -68,13 +69,13 @@ export default function ProgressPage() {
   const [quizScore, setQuizScore] = useState(0);
 
   useEffect(() => {
+    fetchEntries();
     if (user) {
       fetchRecords(user.id);
       fetchQuizResults(user.id);
       fetchProgressStats(user.id);
-      fetchEntries();
     }
-  }, [user, fetchRecords, fetchQuizResults, fetchProgressStats, fetchEntries]);
+  }, [user, fetchEntries, fetchRecords, fetchQuizResults, fetchProgressStats]);
 
   const completedCount = records.filter(r => r.status === 'completed').length;
   const inProgressCount = records.filter(r => r.status === 'in_progress').length;
@@ -88,6 +89,11 @@ export default function ProgressPage() {
     { icon: Star, label: '测验高手', desc: '平均分超过80', earned: averageScore >= 80 },
     { icon: TrendingUp, label: '持续进步', desc: '连续7天学习', earned: false },
   ];
+
+  const handleStartLearning = (entryId: string) => {
+    markAsInProgress(entryId);
+    navigate(`/entry/${entryId}`);
+  };
 
   const handleStartQuiz = (entryId: string) => {
     const quiz = mockQuizzes.find(q => q.entryId === entryId);
@@ -145,8 +151,7 @@ export default function ProgressPage() {
       completedAt: new Date().toISOString().split('T')[0],
     };
 
-    const learningStore = useLearningStore.getState();
-    learningStore.quizResults.push(newResult);
+    addQuizResult(newResult);
 
     if (score >= currentQuiz.passingScore && selectedEntryId) {
       markAsCompleted(selectedEntryId);
@@ -429,16 +434,28 @@ export default function ProgressPage() {
                           </Badge>
 
                           {record.status === 'completed' ? (
-                            <Button variant="ghost" size="sm" onClick={() => markAsInProgress(record.entryId)}>
-                              重新学习
-                            </Button>
+                            <>
+                              <Button variant="ghost" size="sm" onClick={() => handleStartLearning(record.entryId)}>
+                                查看详情
+                              </Button>
+                              {hasQuiz && (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  leftIcon={<PlayCircle className="w-4 h-4" />}
+                                  onClick={() => handleStartQuiz(record.entryId)}
+                                >
+                                  重新测验
+                                </Button>
+                              )}
+                            </>
                           ) : (
-                            <Button size="sm" onClick={() => markAsCompleted(record.entryId)}>
-                              {record.status === 'in_progress' ? '完成学习' : '开始学习'}
+                            <Button size="sm" onClick={() => handleStartLearning(record.entryId)}>
+                              {record.status === 'in_progress' ? '继续学习' : '开始学习'}
                             </Button>
                           )}
 
-                          {hasQuiz && (
+                          {record.status === 'completed' && hasQuiz && (
                             <Button
                               variant="secondary"
                               size="sm"
@@ -454,7 +471,12 @@ export default function ProgressPage() {
                   })
                 ) : (
                   <div className="text-center py-8 text-slate-500">
-                    暂无学习记录
+                    <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                    <p>暂无学习记录</p>
+                    <p className="text-sm mt-2">从知识地图开始你的学习之旅吧！</p>
+                    <Button className="mt-4" onClick={() => navigate('/map')}>
+                      浏览知识地图
+                    </Button>
                   </div>
                 )}
               </div>

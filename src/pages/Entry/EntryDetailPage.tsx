@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, User, Eye, Heart, Share2, Bookmark, History } from 'lucide-react';
+import { ArrowLeft, Clock, User, Eye, Heart, Share2, Bookmark, History, PlayCircle } from 'lucide-react';
 import { useKnowledgeStore } from '../../stores/knowledgeStore';
+import { useLearningStore } from '../../stores/learningStore';
 import { getEntryById } from '../../data/mockEntries';
 import { getCategoryById } from '../../data/mockCategories';
 import Card from '../../components/common/Card';
@@ -12,6 +13,8 @@ import EntryCard from '../../components/domain/EntryCard';
 export default function EntryDetailPage() {
   const { id } = useParams();
   const { currentEntry, fetchEntryById } = useKnowledgeStore();
+  const { records, markAsInProgress } = useLearningStore();
+  const [isLearning, setIsLearning] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -19,7 +22,23 @@ export default function EntryDetailPage() {
     }
   }, [id, fetchEntryById]);
 
+  useEffect(() => {
+    if (id) {
+      const record = records.find(r => r.entryId === id);
+      if (record && record.status === 'in_progress') {
+        setIsLearning(true);
+      }
+    }
+  }, [id, records]);
+
   const entry = currentEntry || (id ? getEntryById(id) : null);
+
+  const handleStartLearning = () => {
+    if (id) {
+      markAsInProgress(id);
+      setIsLearning(true);
+    }
+  };
 
   if (!entry) {
     return (
@@ -162,8 +181,17 @@ export default function EntryDetailPage() {
                 </div>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <Button className="w-full">开始学习</Button>
+              <div className="pt-4 border-t border-slate-100">
+                {isLearning ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50 rounded-lg text-indigo-600">
+                    <PlayCircle className="w-5 h-5" />
+                    <span className="font-medium">学习中...</span>
+                  </div>
+                ) : (
+                  <Button className="w-full" onClick={handleStartLearning} leftIcon={<PlayCircle className="w-4 h-4" />}>
+                    开始学习
+                  </Button>
+                )}
               </div>
             </Card>
           </div>

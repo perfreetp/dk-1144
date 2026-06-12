@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, FileText, MessageCircle, TrendingUp, AlertCircle, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Users, FileText, MessageCircle, TrendingUp, AlertCircle, Plus, Edit2, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useKnowledgeStore } from '../../stores/knowledgeStore';
 import Card from '../../components/common/Card';
@@ -10,7 +10,7 @@ import { Entry, LearningPath } from '../../types';
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
-  const { entries, paths, categories, fetchEntries, fetchPaths, fetchCategories } = useKnowledgeStore();
+  const { entries, paths, categories, fetchEntries, fetchPaths, fetchCategories, addEntry, updateEntry, addPath, updatePath } = useKnowledgeStore();
 
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [showPathModal, setShowPathModal] = useState(false);
@@ -69,8 +69,6 @@ export default function AdminDashboard() {
   ];
 
   const handleSaveEntry = () => {
-    const tagsArray = pathForm.requiredForPositions.split(',').map(t => t.trim()).filter(t => t);
-
     const newEntry: Entry = {
       id: editingEntry?.id || `entry-${Date.now()}`,
       title: entryForm.title,
@@ -86,18 +84,14 @@ export default function AdminDashboard() {
       createdAt: editingEntry?.createdAt || new Date().toISOString().split('T')[0],
       updatedAt: new Date().toISOString().split('T')[0],
       version: editingEntry ? editingEntry.version + 1 : 1,
-      relatedEntries: [],
-      relatedQuestions: [],
+      relatedEntries: editingEntry?.relatedEntries || [],
+      relatedQuestions: editingEntry?.relatedQuestions || [],
     };
 
-    const knowledgeStore = useKnowledgeStore.getState();
     if (editingEntry) {
-      const index = knowledgeStore.entries.findIndex(e => e.id === editingEntry.id);
-      if (index !== -1) {
-        knowledgeStore.entries[index] = newEntry;
-      }
+      updateEntry(newEntry);
     } else {
-      knowledgeStore.entries.push(newEntry);
+      addEntry(newEntry);
     }
 
     setShowEntryModal(false);
@@ -124,14 +118,10 @@ export default function AdminDashboard() {
       estimatedMinutes: pathForm.estimatedMinutes,
     };
 
-    const knowledgeStore = useKnowledgeStore.getState();
     if (editingPath) {
-      const index = knowledgeStore.paths.findIndex(p => p.id === editingPath.id);
-      if (index !== -1) {
-        knowledgeStore.paths[index] = newPath;
-      }
+      updatePath(newPath);
     } else {
-      knowledgeStore.paths.push(newPath);
+      addPath(newPath);
     }
 
     setShowPathModal(false);
@@ -201,7 +191,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setEntryForm({ ...entryForm, content: e.target.value })}
                   rows={6}
                   className="w-full px-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="请输入正文内容（支持HTML格式）"
+                  placeholder="请输入正文内容"
                 />
               </div>
 
@@ -313,10 +303,10 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  包含词条
+                  包含词条（当前可用：{entries.length} 个）
                 </label>
                 <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-3">
-                  {entries.map(entry => (
+                  {entries.length > 0 ? entries.map(entry => (
                     <label key={entry.id} className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
@@ -338,7 +328,9 @@ export default function AdminDashboard() {
                       />
                       {entry.title}
                     </label>
-                  ))}
+                  )) : (
+                    <p className="text-sm text-slate-500">暂无词条，请先创建词条</p>
+                  )}
                 </div>
               </div>
 
