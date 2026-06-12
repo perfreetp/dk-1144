@@ -608,6 +608,41 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </Card>
+
+            <Card className="p-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900">主题路径管理</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowPathModal(true)}>
+                  <Plus className="w-4 h-4 mr-1" /> 添加路径
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {paths.map(path => (
+                  <div key={path.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-slate-900 line-clamp-1">{path.title}</div>
+                      <div className="text-xs text-slate-500">{path.entryIds.length} 个词条</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingPath(path);
+                        setPathForm({
+                          title: path.title,
+                          description: path.description,
+                          entryIds: path.entryIds,
+                          requiredForPositions: path.requiredForPositions.join(','),
+                          estimatedMinutes: path.estimatedMinutes,
+                        });
+                        setShowPathModal(true);
+                      }}
+                      className="p-1 hover:bg-slate-200 rounded ml-2"
+                    >
+                      <Edit2 className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
         </div>
       </div>

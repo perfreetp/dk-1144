@@ -14,25 +14,34 @@ export default function EntryDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { currentEntry, fetchEntryById } = useKnowledgeStore();
-  const { records, markAsInProgress, markAsCompleted } = useLearningStore();
+  const { records, fetchRecords, markAsInProgress, markAsCompleted } = useLearningStore();
   const [isLearning, setIsLearning] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
 
   useEffect(() => {
     if (id) {
       fetchEntryById(id);
+      fetchRecords('1');
     }
-  }, [id, fetchEntryById]);
+  }, [id, fetchEntryById, fetchRecords]);
 
   useEffect(() => {
-    if (id) {
+    if (id && records.length > 0) {
       const record = records.find(r => r.entryId === id);
       if (record) {
         if (record.status === 'in_progress') {
           setIsLearning(true);
+          setIsCompleted(false);
         } else if (record.status === 'completed') {
           setIsCompleted(true);
+          setIsLearning(false);
+        } else {
+          setIsLearning(false);
+          setIsCompleted(false);
         }
+      } else {
+        setIsLearning(false);
+        setIsCompleted(false);
       }
     }
   }, [id, records]);

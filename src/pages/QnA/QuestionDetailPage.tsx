@@ -18,6 +18,7 @@ export default function QuestionDetailPage() {
     addAnswer,
     addEntry,
     answers,
+    fetchAnswers,
   } = useKnowledgeStore();
   const { user } = useAuthStore();
   const [answerContent, setAnswerContent] = useState('');
@@ -26,9 +27,10 @@ export default function QuestionDetailPage() {
 
   useEffect(() => {
     if (id) {
+      fetchAnswers();
       fetchQuestionById(id);
     }
-  }, [id, fetchQuestionById]);
+  }, [id, fetchAnswers, fetchQuestionById]);
 
   useEffect(() => {
     if (convertedEntryId) {
@@ -47,6 +49,7 @@ export default function QuestionDetailPage() {
       addAnswer(currentQuestion.id, `<p>${answerContent}</p>`, user.name, user.id, user.avatar);
       setAnswerContent('');
       if (id) {
+        fetchAnswers();
         fetchQuestionById(id);
       }
     }
