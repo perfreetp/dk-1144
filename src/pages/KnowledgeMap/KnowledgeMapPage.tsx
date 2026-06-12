@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Search, FileText, Users, Monitor, Building, Calculator, Coffee } from 'lucide-react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { Search, FileText, Users, Monitor, Building, Calculator, Coffee, Map } from 'lucide-react';
 import { useKnowledgeStore } from '../../stores/knowledgeStore';
 import { getCategoryById } from '../../data/mockCategories';
+import { mockPaths } from '../../data/mockPaths';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import EntryCard from '../../components/domain/EntryCard';
 import PathCard from '../../components/domain/PathCard';
+import Button from '../../components/common/Button';
+import { ArrowLeft } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   FileText,
@@ -19,6 +22,7 @@ const iconMap: Record<string, React.ComponentType<any>> = {
 
 export default function KnowledgeMapPage() {
   const { categoryId, pathId } = useParams();
+  const [searchParams] = useSearchParams();
   const {
     entries,
     categories,
@@ -32,6 +36,7 @@ export default function KnowledgeMapPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEntries();
@@ -45,6 +50,13 @@ export default function KnowledgeMapPage() {
     }
   }, [categoryId]);
 
+  useEffect(() => {
+    const pathParam = searchParams.get('path');
+    if (pathParam) {
+      setSelectedPath(pathParam);
+    }
+  }, [searchParams]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim()) {
@@ -52,13 +64,20 @@ export default function KnowledgeMapPage() {
     }
   };
 
+  const selectedCategoryData = selectedCategory ? getCategoryById(selectedCategory) : null;
+  const selectedPathData = selectedPath ? mockPaths.find(p => p.id === selectedPath) : null;
+
+  const pathEntries = selectedPath
+    ? entries.filter(e => selectedPathData?.entryIds.includes(e.id))
+    : [];
+
   const displayEntries = searchQuery.trim()
     ? searchResults
+    : selectedPath
+    ? pathEntries
     : selectedCategory
     ? entries.filter(e => e.categoryId === selectedCategory)
     : entries;
-
-  const selectedCategoryData = selectedCategory ? getCategoryById(selectedCategory) : null;
 
   return (
     <div className="flex h-full">
@@ -67,9 +86,12 @@ export default function KnowledgeMapPage() {
           <h2 className="font-bold text-slate-900 mb-3">知识分类</h2>
           <div className="space-y-1">
             <button
-              onClick={() => setSelectedCategory(null)}
+              onClick={() => {
+                setSelectedCategory(null);
+                setSelectedPath(null);
+              }}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                !selectedCategory
+                !selectedCategory && !selectedPath
                   ? 'bg-indigo-50 text-indigo-700 font-medium'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
@@ -81,9 +103,12 @@ export default function KnowledgeMapPage() {
               return (
                 <button
                   key={category.id}
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setSelectedPath(null);
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2 ${
-                    selectedCategory === category.id
+                    selectedCategory === category.id && !selectedPath
                       ? 'bg-indigo-50 text-indigo-700 font-medium'
                       : 'text-slate-600 hover:bg-slate-50'
                   }`}
@@ -100,8 +125,27 @@ export default function KnowledgeMapPage() {
         <div className="p-4 border-t border-slate-200 flex-1 overflow-auto">
           <h2 className="font-bold text-slate-900 mb-3">热门主题路径</h2>
           <div className="space-y-2">
-            {paths.slice(0, 5).map(path => (
-              <PathCard key={path.id} path={path} />
+            {paths.map(path => (
+              <div
+                key={path.id}
+                onClick={() => {
+                  setSelectedPath(path.id);
+                  setSelectedCategory(null);
+                }}
+                className={`p-3 rounded-lg cursor-pointer transition-all ${
+                  selectedPath === path.id
+                    ? 'bg-indigo-50 border border-indigo-200'
+                    : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Map className="w-4 h-4 text-indigo-600" />
+                  <span className="text-sm font-medium text-slate-900 flex-1">{path.title}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1 ml-6">
+                  {path.entryIds.length} 个词条
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -112,12 +156,33 @@ export default function KnowledgeMapPage() {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
+                <div className="flex items-center gap-2 mb-1">
+                  {selectedPath && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPath(null);
+                        setSelectedCategory(null);
+                      }}
+                      leftIcon={<ArrowLeft className="w-4 h-4" />}
+                    >
+                      返回
+                    </Button>
+                  )}
+                </div>
                 <h1 className="text-2xl font-bold text-slate-900">
-                  {selectedCategoryData ? selectedCategoryData.name : '知识地图'}
+                  {selectedPath
+                    ? selectedPathData?.title || '主题路径'
+                    : selectedCategoryData
+                    ? selectedCategoryData.name
+                    : '知识地图'}
                 </h1>
                 <p className="text-sm text-slate-600 mt-1">
                   {searchQuery
                     ? `找到 ${searchResults.length} 个相关结果`
+                    : selectedPath
+                    ? `包含 ${pathEntries.length} 个词条 · 约 ${selectedPathData?.estimatedMinutes || 0} 分钟`
                     : `共 ${displayEntries.length} 个词条`}
                 </p>
               </div>
@@ -134,7 +199,7 @@ export default function KnowledgeMapPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             </div>
 
-            {!searchQuery && !selectedCategory && (
+            {!searchQuery && !selectedCategory && !selectedPath && (
               <div className="flex flex-wrap gap-2 mt-4">
                 <span className="text-sm text-slate-600">热门标签：</span>
                 {['报销', '请假', 'IT系统', '绩效考核'].map(tag => (
@@ -148,17 +213,59 @@ export default function KnowledgeMapPage() {
                 ))}
               </div>
             )}
+
+            {selectedPath && selectedPathData && (
+              <div className="mt-4 p-4 bg-indigo-50 rounded-xl">
+                <p className="text-sm text-indigo-900">{selectedPathData.description}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {selectedPathData.requiredForPositions.map(pos => (
+                    <Badge key={pos} variant="primary">{pos}</Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="p-6">
           <div className="max-w-6xl mx-auto">
             {displayEntries.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {displayEntries.map(entry => (
-                  <EntryCard key={entry.id} entry={entry} />
-                ))}
-              </div>
+              selectedPath ? (
+                <div className="space-y-4">
+                  {displayEntries.map((entry, idx) => (
+                    <Card key={entry.id} className="p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 font-bold">
+                            {idx + 1}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-slate-900 mb-2">{entry.title}</h3>
+                            <p className="text-sm text-slate-600 mb-3">{entry.summary}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {entry.tags.slice(0, 3).map(tag => (
+                                <Badge key={tag} variant="default">{tag}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <a
+                          href={`/entry/${entry.id}`}
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-colors whitespace-nowrap"
+                        >
+                          开始学习
+                        </a>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {displayEntries.map(entry => (
+                    <EntryCard key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              )
             ) : (
               <Card className="p-12 text-center">
                 <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
